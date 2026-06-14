@@ -100,29 +100,46 @@ const AdminDashboard = () => {
         const allStudents = [...filteredStudents, ...updatedAddedStudents];
         
         setStudents(allStudents);
+        
+        // Load pending payments from localStorage for demo
+        const pendingData = JSON.parse(localStorage.getItem('pendingPayments') || '[]');
+        const filteredPendingPayments = pendingData.filter(p => p.status === 'pending_verification');
+        setPendingPayments(filteredPendingPayments);
+
+        // Generate today's meal data
+        generateTodayMeals();
+        
+        // Load recent activity
+        loadRecentActivity();
+        
+        // Calculate and update dashboard stats
+        updateDashboardStats(allStudents, filteredPendingPayments);
+        
+        // Initialize empty payments array
+        setPayments([]);
       } else {
         // If API fails, use only locally added students
         const addedStudents = JSON.parse(localStorage.getItem('addedStudents') || '[]');
-        setStudents(addedStudents);
+        const allStudents = addedStudents;
+        setStudents(allStudents);
+        
+        // Load pending payments from localStorage for demo
+        const pendingData = JSON.parse(localStorage.getItem('pendingPayments') || '[]');
+        const filteredPendingPayments = pendingData.filter(p => p.status === 'pending_verification');
+        setPendingPayments(filteredPendingPayments);
+
+        // Generate today's meal data
+        generateTodayMeals();
+        
+        // Load recent activity
+        loadRecentActivity();
+        
+        // Calculate and update dashboard stats
+        updateDashboardStats(allStudents, filteredPendingPayments);
+        
+        // Initialize empty payments array
+        setPayments([]);
       }
-
-      // Load pending payments from localStorage for demo
-      const pendingData = JSON.parse(localStorage.getItem('pendingPayments') || '[]');
-      const filteredPendingPayments = pendingData.filter(p => p.status === 'pending_verification');
-      setPendingPayments(filteredPendingPayments);
-
-      // Generate today's meal data
-      generateTodayMeals();
-      
-      // Load recent activity
-      loadRecentActivity();
-      
-      // Calculate and update dashboard stats
-      updateDashboardStats(allStudents, filteredPendingPayments);
-      
-      // Initialize empty payments array
-      setPayments([]);
-      
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }

@@ -6,9 +6,9 @@ spring:
     name: hostel-mess-management
   
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://db.tzxqnjuywtsbeovrkjej.supabase.co:5432/postgres}
+    url: ${DATABASE_URL:jdbc:postgresql://db.cjbcyqaelqtghvvckitx.supabase.co:5432/postgres}
     username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:rintoCherian}
+    password: ${DATABASE_PASSWORD:Hostel-mess2026}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
