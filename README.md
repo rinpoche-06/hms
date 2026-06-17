@@ -124,7 +124,7 @@ The frontend will start on `http://localhost:3000` and proxy API requests to por
 
 | Command | Description |
 |---|---|
-| `./mvnw spring-boot:run` | Starts the Spring Boot development server |
-| `./mvnw clean package` | Builds a production JAR into `target/` |
-| `./mvnw test` | Runs the test suite |
+| `./mvn spring-boot:run` | Starts the Spring Boot development server |
+| `./mvn clean package` | Builds a production JAR into `target/` |
+| `./mvn test` | Runs the test suite |
 | `java -jar target/hostel-mess-management-1.0.0.jar` | Runs the production JAR |
