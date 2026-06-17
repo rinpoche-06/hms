@@ -263,21 +263,6 @@ const LoginPage = () => {
               )}
             </motion.button>
           </form>
-
-          {/* Demo Credentials */}
-          <motion.div
-            className="demo-credentials"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <h4>Demo Credentials:</h4>
-            <div className="demo-info">
-              <div className="demo-item">
-                <strong>Student:</strong> Any name + admission number (e.g., John + 1234)
-              </div>
-            </div>
-          </motion.div>
         </motion.div>
       </div>
     </div>
