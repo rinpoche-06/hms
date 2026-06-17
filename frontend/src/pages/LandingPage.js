@@ -59,15 +59,6 @@ const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <motion.div
-              className="hero-badge"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <FiStar className="badge-icon" />
-              <span>Modern Mess Management</span>
-            </motion.div>
 
             <motion.h1
               className="hero-title"
@@ -85,9 +76,8 @@ const LandingPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
-            >
-              Experience the future of hostel dining with our intuitive platform. 
-              Manage meals, payments, and student preferences with the elegance of modern design.
+            > 
+              Manage meals, payments, and student preferences.
             </motion.p>
 
             <motion.div
@@ -103,18 +93,6 @@ const LandingPage = () => {
                 Get Started
                 <FiArrowRight className="btn-icon" />
               </button>
-              
-              <div className="hero-stats-mini">
-                <div className="stat-item">
-                  <span className="stat-number">₹60</span>
-                  <span className="stat-label">per meal</span>
-                </div>
-                <div className="stat-divider"></div>
-                <div className="stat-item">
-                  <span className="stat-number">2</span>
-                  <span className="stat-label">meals/day</span>
-                </div>
-              </div>
             </motion.div>
           </motion.div>
 
@@ -133,22 +111,16 @@ const LandingPage = () => {
                   <h4>Today's Menu</h4>
                   <p>Breakfast & Dinner</p>
                 </div>
-                <div className="card-status">
-                  <span className="status-dot"></span>
-                  <span>Active</span>
-                </div>
               </div>
               
               <div className="card-content">
                 <div className="meal-item">
                   <span className="meal-icon">🌅</span>
                   <span className="meal-name">Breakfast</span>
-                  <span className="meal-price">₹60</span>
                 </div>
                 <div className="meal-item">
                   <span className="meal-icon">🌙</span>
                   <span className="meal-name">Dinner</span>
-                  <span className="meal-price">₹60</span>
                 </div>
               </div>
               
