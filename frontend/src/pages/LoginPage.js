@@ -256,7 +256,7 @@ const LoginPage = () => {
               {loading ? (
                 <div className="login-spinner">
                   <div className="spinner"></div>
-                  <span>Signing in...</span>
+                  <span>Signing in..</span>
                 </div>
               ) : (
                 <span>Sign In</span>
