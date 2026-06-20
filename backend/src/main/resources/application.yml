@@ -9,14 +9,16 @@ spring:
     active: local
   
   datasource:
-    url: jdbc:postgresql://db.njpqrplfmyclgqwzkpsu.supabase.co:5432/postgres
+    url: jdbc:postgresql://db.njpqrplfmyclgqwzkpsu.supabase.co:5432/postgres?sslmode=require
     username: postgres
     password: Hostel-mess2026
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
+      maximum-pool-size: 5
+      minimum-idle: 2
       connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   
   jpa:
     hibernate:
