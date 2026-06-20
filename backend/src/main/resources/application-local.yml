@@ -6,8 +6,8 @@ spring:
     name: hostel-mess-management
 
   datasource:
-    url: jdbc:postgresql://db.njpqrplfmyclgqwzkpsu.supabase.co:5432/postgres?sslmode=require
-    username: postgres
+    url: jdbc:postgresql://aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+    username: postgres.njpqrplfmyclgqwzkpsu
     password: Hostel-mess2026
     driver-class-name: org.postgresql.Driver
     hikari:
@@ -28,6 +28,10 @@ spring:
         jdbc:
           lob:
             non_contextual_creation: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
   security:
     user:

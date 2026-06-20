@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -23,7 +24,7 @@ public class AdminController {
             StudentDto student = adminService.addStudent(request);
             return ResponseEntity.ok(student);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -42,16 +43,16 @@ public class AdminController {
     public ResponseEntity<?> deleteStudent(@PathVariable Long studentId) {
         try {
             adminService.deleteStudent(studentId);
-            return ResponseEntity.ok("{\"message\": \"Student deleted successfully\"}");
+            return ResponseEntity.ok(Map.of("message", "Student deleted successfully"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PostMapping("/meals/reset")
     public ResponseEntity<?> resetAllMeals() {
         adminService.resetAllMealsToDefault();
-        return ResponseEntity.ok("{\"message\": \"All meals reset to default successfully\"}");
+        return ResponseEntity.ok(Map.of("message", "All meals reset to default successfully"));
     }
 
     @GetMapping("/payments/pending")
@@ -63,9 +64,9 @@ public class AdminController {
     public ResponseEntity<?> verifyPayment(@PathVariable Long paymentId) {
         try {
             adminService.verifyPayment(paymentId);
-            return ResponseEntity.ok("{\"message\": \"Payment verified successfully\"}");
+            return ResponseEntity.ok(Map.of("message", "Payment verified successfully"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
