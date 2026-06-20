@@ -96,12 +96,6 @@ CREATE INDEX idx_admins_username ON admins(username);
 INSERT INTO admins (username, password, name, email) 
 VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Admin', 'admin@hms.com');
 
--- Insert sample students
-INSERT INTO students (name, admission_number, email, phone, room_number) VALUES
-('John Doe', '1001', 'john@example.com', '9876543210', 'A101'),
-('Jane Smith', '1002', 'jane@example.com', '9876543211', 'A102'),
-('Bob Johnson', '1003', 'bob@example.com', '9876543212', 'B201');
-
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
