@@ -19,10 +19,10 @@ export const AuthProvider = ({ children }) => {
   // Configure axios defaults
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const savedUser = localStorage.getItem('user');
+    if (token && savedUser) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // For now, skip token verification to avoid issues
-      // verifyToken(token);
+      setUser(JSON.parse(savedUser));
     }
     setLoading(false);
   }, []);
@@ -44,85 +44,27 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      // Check for admin login first (demo mode)
-      if (credentials.role === 'admin') {
-        console.log('Admin login attempt:', credentials);
-        if (credentials.username === 'admin' && credentials.password === '1234567890') {
-          // Admin login success
-          const userData = {
-            id: 1,
-            username: 'admin',
-            name: 'Administrator',
-            role: 'admin'
-          };
+      const response = await axios.post('/api/auth/login', credentials);
+      const data = response.data;
 
-          const token = `local-admin-token-${Date.now()}`;
-          localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          setUser(userData);
-
-          toast.success(`Welcome back, Administrator! 🎉`);
-          return { success: true };
-        } else {
-          toast.error('Invalid admin credentials. Use: admin / 1234567890');
-          return { success: false, message: 'Invalid credentials' };
-        }
+      if (!data.success) {
+        toast.error(data.message || 'Login failed');
+        return { success: false, message: data.message };
       }
 
-      // For student login, check locally added students first
-      if (credentials.role === 'student') {
-        const addedStudents = JSON.parse(localStorage.getItem('addedStudents') || '[]');
-        const localStudent = addedStudents.find(s =>
-          s.name.toLowerCase() === credentials.name.toLowerCase() &&
-          s.admissionNumber === credentials.admissionNumber
-        );
+      const { token, user: userData } = data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(userData);
 
-        if (localStudent) {
-          // Local student login success
-          const userData = {
-            id: localStudent.id,
-            name: localStudent.name,
-            admissionNumber: localStudent.admissionNumber,
-            role: 'student',
-            email: localStudent.email,
-            phone: localStudent.phone,
-            roomNumber: localStudent.roomNumber
-          };
-
-          const token = `local-student-token-${Date.now()}`;
-          localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          setUser(userData);
-
-          toast.success(`Welcome back, ${userData.name}! 🎉`);
-          return { success: true };
-        } else {
-          toast.error('Student not found. Please contact admin to add your details first.');
-          return { success: false, message: 'Student not found' };
-        }
-      }
-
-      // Try API login as fallback (for production)
-      try {
-        const response = await axios.post('/api/auth/login', credentials);
-        const { token, user: userData } = response.data;
-
-        localStorage.setItem('token', token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(userData);
-
-        toast.success(`Welcome back, ${userData.name || userData.username}! 🎉`);
-        return { success: true };
-      } catch (apiError) {
-        console.log('API login failed, using local authentication');
-        toast.error('Login failed. Please check your credentials.');
-        return { success: false, message: 'Login failed' };
-      }
+      toast.success(`Welcome back, ${userData.name || userData.username}! 🎉`);
+      return { success: true };
 
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
-      return { success: false, message: 'Login failed' };
+      const message = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      toast.error(message);
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
@@ -130,6 +72,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     toast.success('Logged out successfully! 👋');
