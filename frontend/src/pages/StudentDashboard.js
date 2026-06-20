@@ -33,23 +33,40 @@ const StudentDashboard = () => {
     }
   }, [user?.id]);
 
-  // Helper function to get simulated current date (October 23, 2025)
+  // Get the actual current date in IST (UTC+5:30)
   const getSimulatedDate = () => {
-    return new Date(2025, 9, 23); // October 23, 2025 (month is 0-indexed)
+    const now = new Date();
+    // Get IST date parts using Intl API (reliable across all browsers)
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    }).formatToParts(now);
+    const get = (type) => parseInt(parts.find(p => p.type === type).value, 10);
+    return new Date(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  };
+
+  // Format a Date object to YYYY-MM-DD using its local components (no UTC shift)
+  const toDateStr = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
   // Helper function to show current date info
   const getCurrentDateInfo = () => {
     const today = getSimulatedDate();
     return {
-      today: today.toISOString().split('T')[0],
-      todayFormatted: today.toLocaleDateString('en-US', { 
+      today: toDateStr(today),
+      todayFormatted: today.toLocaleDateString('en-IN', { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
       }),
-      month: today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      month: today.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     };
   };
 
@@ -62,7 +79,7 @@ const StudentDashboard = () => {
 
       generateDefaultMeals();
 
-      // Use dynamic calculation based on simulated current date (Oct 24, 2025)
+      // Use dynamic calculation based on actual current date
       const today = getSimulatedDate();
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth();
@@ -77,7 +94,7 @@ const StudentDashboard = () => {
       
       // Dynamic month name and dates
       const currentMonthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      const dueDate = endOfMonth.toISOString().split('T')[0]; // Last day of current month
+      const dueDate = toDateStr(endOfMonth);
       const billingPeriod = `${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
       
       console.log('💰 BILLING CALCULATION - Current date:', {
@@ -126,7 +143,7 @@ const StudentDashboard = () => {
         month: p.month || getSimulatedDate().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
         amount: p.amount,
         status: 'confirmed',
-        date: p.verifiedDate ? p.verifiedDate.split('T')[0] : getSimulatedDate().toISOString().split('T')[0],
+        date: p.verifiedDate ? p.verifiedDate.split('T')[0] : toDateStr(getSimulatedDate()),
         fine: p.fine || 0
       }));
       
@@ -181,7 +198,7 @@ const StudentDashboard = () => {
     // Generate meals from today to end of current month (dynamic)
     for (let day = todayDate; day <= endDate; day++) {
       const date = new Date(currentYear, currentMonth, day);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateStr(date);
       const canModify = day > todayDate; // Can modify future dates only (tomorrow onwards)
       
       // Check if this date has saved preferences, otherwise default to opted
@@ -228,7 +245,7 @@ const StudentDashboard = () => {
     
     // Get current month name dynamically
     const currentMonthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const dueDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]; // Last day of current month
+    const dueDate = toDateStr(new Date(currentYear, currentMonth + 1, 0)); // Last day of current month
     const billingPeriod = `${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(currentYear, currentMonth + 1, 0).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     
     console.log('🍽️ MEAL GENERATION - Dynamic calculation:', {
@@ -361,12 +378,12 @@ const StudentDashboard = () => {
       studentBills[user.id] = {
         amount: totalAmount,
         totalMeals: optedMeals.length,
-        lastUpdated: getSimulatedDate().toISOString()
+        lastUpdated: toDateStr(getSimulatedDate())
       };
       localStorage.setItem('studentBills', JSON.stringify(studentBills));
       
       // Trigger admin dashboard refresh by updating a timestamp
-      localStorage.setItem('adminRefreshTrigger', getSimulatedDate().toISOString());
+      localStorage.setItem('adminRefreshTrigger', toDateStr(getSimulatedDate()));
       
       console.log('💾 SAVED to localStorage:', studentBills[user.id]);
     }
@@ -404,7 +421,7 @@ const StudentDashboard = () => {
       month: currentBill.month,
       amount: currentBill.amount,
       status: 'pending_verification',
-      date: getSimulatedDate().toISOString().split('T')[0],
+      date: toDateStr(getSimulatedDate()),
       fine: currentBill.fine || 0
     };
     setPaymentHistory([newPayment, ...paymentHistory]);
@@ -417,14 +434,14 @@ const StudentDashboard = () => {
       admissionNumber: user.admissionNumber,
       amount: currentBill.amount,
       status: 'pending_verification',
-      paymentDate: getSimulatedDate().toISOString(),
+      paymentDate: toDateStr(getSimulatedDate()),
       fine: currentBill.fine || 0
     };
     existingPayments.push(adminPayment);
     localStorage.setItem('pendingPayments', JSON.stringify(existingPayments));
     
     // Trigger admin dashboard refresh
-    localStorage.setItem('adminRefreshTrigger', getSimulatedDate().toISOString());
+    localStorage.setItem('adminRefreshTrigger', toDateStr(getSimulatedDate()));
     
     toast.success('Payment marked as paid! Waiting for admin verification.');
     

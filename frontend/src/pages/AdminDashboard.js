@@ -220,7 +220,7 @@ const AdminDashboard = () => {
         phone: newStudent.phone || '',
         roomNumber: newStudent.roomNumber || '',
         isActive: true,
-        createdAt: getSimulatedDate().toISOString(),
+        createdAt: toDateStr(getSimulatedDate()),
         pendingAmount: calculateCurrentMonthAmount(), // Dynamic bill amount
         totalMealsThisMonth: calculateCurrentMonthMeals()
       };
@@ -257,7 +257,7 @@ const AdminDashboard = () => {
 
   const generateTodayMealsWithStudentCount = (studentCount) => {
     const today = getSimulatedDate();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toDateStr(today);
     const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
     const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     
@@ -304,9 +304,26 @@ const AdminDashboard = () => {
     generateTodayMealsWithStudentCount(students.length);
   };
 
-  // Helper function to get simulated current date (October 23, 2025)
+  // Get the actual current date in IST (UTC+5:30)
   const getSimulatedDate = () => {
-    return new Date(2025, 9, 23); // October 23, 2025 (month is 0-indexed)
+    const now = new Date();
+    // Get IST date parts using Intl API (reliable across all browsers)
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    }).formatToParts(now);
+    const get = (type) => parseInt(parts.find(p => p.type === type).value, 10);
+    return new Date(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  };
+
+  // Format a Date object to YYYY-MM-DD using its local components (no UTC shift)
+  const toDateStr = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
   // Helper functions for dynamic billing calculation
@@ -436,7 +453,7 @@ const AdminDashboard = () => {
       type: type, // 'add', 'delete', 'payment'
       message: message,
       studentName: studentName,
-      timestamp: getSimulatedDate().toISOString(),
+      timestamp: toDateStr(getSimulatedDate()),
       timeAgo: 'Just now'
     };
     
@@ -476,7 +493,7 @@ const AdminDashboard = () => {
     if (payment) {
       // Update payment status to confirmed
       payment.status = 'confirmed';
-      payment.verifiedDate = getSimulatedDate().toISOString();
+      payment.verifiedDate = toDateStr(getSimulatedDate());
       
       // Update localStorage
       const allPayments = JSON.parse(localStorage.getItem('pendingPayments') || '[]');
