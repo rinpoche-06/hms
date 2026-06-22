@@ -12,6 +12,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -101,7 +102,7 @@ function AppContent() {
                 } 
               />
               
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </motion.main>
           
