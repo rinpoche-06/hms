@@ -683,8 +683,8 @@
 .no-activity span {
   font-size: 0.875rem;
   color: var(--gray-500);
-}/
-* Pending Payments Section */
+}
+/* Pending Payments Section */
 .pending-payments-section {
   margin-top: 2rem;
   background: var(--gray-50);
@@ -925,4 +925,15 @@ elete Modal */
   font-size: 1rem;
   font-weight: 600;
   color: var(--gray-800);
+}
+
+.form-error {
+  color: var(--error);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.input-error {
+  border-color: var(--error);
 }

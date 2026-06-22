@@ -11,6 +11,7 @@ const AdminDashboard = () => {
   const [payments, setPayments] = useState([]);
   const [pendingPayments, setPendingPayments] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [errors, setErrors] = useState({});
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
@@ -24,7 +25,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       loadDashboardData();
-    }, 10000); // Refresh every 10 seconds
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -63,7 +64,7 @@ const AdminDashboard = () => {
       change: ''
     },
     {
-      title: 'Today\'s Meals',
+      title: "Today's Meals",
       value: dashboardStats.todayMeals,
       icon: <FiCalendar />,
       color: 'green',
@@ -100,8 +101,26 @@ const AdminDashboard = () => {
   const handleAddStudentSubmit = async (e) => {
     e.preventDefault();
 
+    const newErrors = {};
+
+    if (!newStudent.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
     if (!/^\d{4}$/.test(newStudent.admissionNumber)) {
-      toast.error('Admission number must be exactly 4 digits');
+      newErrors.admissionNumber = 'Admission number must be exactly 4 digits';
+    }
+
+    if (newStudent.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newStudent.email)) {
+      newErrors.email = 'Enter a valid email address';
+    }
+
+    if (newStudent.phone && !/^[6-9]\d{9}$/.test(newStudent.phone)) {
+      newErrors.phone = 'Enter a valid 10-digit Indian mobile number';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -138,6 +157,7 @@ const AdminDashboard = () => {
       addActivity('add', `Student ${savedStudent.name} added`, savedStudent.name);
 
       setShowAddStudentModal(false);
+      setErrors({});
       setNewStudent({ name: '', admissionNumber: '', email: '', phone: '', roomNumber: '' });
       toast.success(`Student ${savedStudent.name} added successfully!`);
     } catch (error) {
@@ -145,20 +165,15 @@ const AdminDashboard = () => {
     }
   };
 
-
-
   const generateTodayMealsWithStudentCount = (studentCount) => {
     const today = getSimulatedDate();
     const todayStr = toDateStr(today);
     const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
     const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    
-    // Use provided student count
-    const breakfastOptedStudents = studentCount; // Show actual student count, can be 0
-    const dinnerOptedStudents = studentCount; // Show actual student count, can be 0
-    
 
-    
+    const breakfastOptedStudents = studentCount;
+    const dinnerOptedStudents = studentCount;
+
     const todayMeals = [
       {
         id: 1,
@@ -181,25 +196,16 @@ const AdminDashboard = () => {
         status: 'active'
       }
     ];
-    
+
     setMeals(todayMeals);
-    
-    console.log('🍽️ ADMIN - Today\'s meals generated:', {
-      studentCount: studentCount,
-      breakfastOptedStudents: breakfastOptedStudents,
-      dinnerOptedStudents: dinnerOptedStudents,
-      totalMeals: breakfastOptedStudents + dinnerOptedStudents
-    });
   };
 
   const generateTodayMeals = () => {
     generateTodayMealsWithStudentCount(students.length);
   };
 
-  // Get the actual current date in IST (UTC+5:30)
   const getSimulatedDate = () => {
     const now = new Date();
-    // Get IST date parts using Intl API (reliable across all browsers)
     const parts = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Asia/Kolkata',
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -210,7 +216,6 @@ const AdminDashboard = () => {
     return new Date(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
   };
 
-  // Format a Date object to YYYY-MM-DD using its local components (no UTC shift)
   const toDateStr = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -218,39 +223,6 @@ const AdminDashboard = () => {
     return `${y}-${m}-${d}`;
   };
 
-  // Helper functions for dynamic billing calculation
-  const calculateCurrentMonthAmount = () => {
-    const today = getSimulatedDate();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const todayDate = today.getDate();
-    
-    // Calculate days from today to end of month
-    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    const endDate = endOfMonth.getDate();
-    const remainingDays = endDate - todayDate + 1; // Including today
-    const totalMeals = remainingDays * 2; // 2 meals per day
-    const totalAmount = totalMeals * 60; // ₹60 per meal
-    
-    return totalAmount;
-  };
-
-  const calculateCurrentMonthMeals = () => {
-    const today = getSimulatedDate();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const todayDate = today.getDate();
-    
-    // Calculate days from today to end of month
-    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    const endDate = endOfMonth.getDate();
-    const remainingDays = endDate - todayDate + 1; // Including today
-    const totalMeals = remainingDays * 2; // 2 meals per day
-    
-    return totalMeals;
-  };
-
-  // Function to update dashboard stats
   const updateDashboardStats = (studentsList = students, pendingPaymentsList = pendingPayments) => {
     const totalStudents = studentsList.length;
     const todayMeals = totalStudents * 2;
@@ -263,24 +235,21 @@ const AdminDashboard = () => {
     });
   };
 
-  // Activity management functions
   const addActivity = (type, message, studentName = '') => {
     const newActivity = {
       id: Date.now(),
-      type: type, // 'add', 'delete', 'payment'
+      type: type,
       message: message,
       studentName: studentName,
       timestamp: toDateStr(getSimulatedDate()),
       timeAgo: 'Just now'
     };
-    
+
     setRecentActivity(prev => {
       const updated = [newActivity, ...prev];
-      // Keep only last 5 activities
       return updated.slice(0, 5);
     });
-    
-    // Store in localStorage for persistence
+
     const existingActivity = JSON.parse(localStorage.getItem('recentActivity') || '[]');
     const updatedActivity = [newActivity, ...existingActivity].slice(0, 5);
     localStorage.setItem('recentActivity', JSON.stringify(updatedActivity));
@@ -292,38 +261,23 @@ const AdminDashboard = () => {
   };
 
   const handleVerifyPayment = (paymentId) => {
-    // Local workflow for demo
     const payment = pendingPayments.find(p => p.id === paymentId);
     if (payment) {
-      // Update payment status to confirmed
       payment.status = 'confirmed';
       payment.verifiedDate = toDateStr(getSimulatedDate());
-      
-      // Update localStorage
+
       const allPayments = JSON.parse(localStorage.getItem('pendingPayments') || '[]');
-      const updatedPayments = allPayments.map(p => 
-        p.id === paymentId ? payment : p
-      );
+      const updatedPayments = allPayments.map(p => p.id === paymentId ? payment : p);
       localStorage.setItem('pendingPayments', JSON.stringify(updatedPayments));
-      
-      // Store confirmed payment for student to see
+
       const confirmedPayments = JSON.parse(localStorage.getItem('confirmedPayments') || '[]');
       confirmedPayments.push(payment);
       localStorage.setItem('confirmedPayments', JSON.stringify(confirmedPayments));
-      
-      console.log('Payment verified and stored:', payment);
-      console.log('All confirmed payments:', confirmedPayments);
-      
-      // Remove from pending list
+
       const updatedPendingPayments = pendingPayments.filter(p => p.id !== paymentId);
       setPendingPayments(updatedPendingPayments);
-      
-      // Update dashboard stats with new pending payments
       updateDashboardStats(students, updatedPendingPayments);
-      
-      // Add to recent activity
       addActivity('payment', `Payment verified for ${payment.studentName}`, payment.studentName);
-      
       toast.success(`Payment verified for ${payment.studentName}!`);
     }
   };
@@ -417,9 +371,7 @@ const AdminDashboard = () => {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               whileHover={{ y: -5 }}
             >
-              <div className="stat-icon">
-                {stat.icon}
-              </div>
+              <div className="stat-icon">{stat.icon}</div>
               <div className="stat-content">
                 <h3 className="stat-value">{stat.value}</h3>
                 <p className="stat-title">{stat.title}</p>
@@ -545,9 +497,7 @@ const AdminDashboard = () => {
                   >
                     <div className="table-cell">
                       <div className="student-info">
-                        <div className="student-avatar">
-                          {student.name.charAt(0)}
-                        </div>
+                        <div className="student-avatar">{student.name.charAt(0)}</div>
                         <span>{student.name}</span>
                       </div>
                     </div>
@@ -576,8 +526,6 @@ const AdminDashboard = () => {
             </div>
           )}
 
-
-
           {activeTab === 'payments' && (
             <div className="payments-content">
               <div className="content-header">
@@ -592,7 +540,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Pending Verification Section */}
               <div className="pending-payments-section">
                 <h3>Payments Pending Verification ({pendingPayments.length})</h3>
                 <div className="pending-payments-list">
@@ -617,9 +564,7 @@ const AdminDashboard = () => {
                           >
                             ✓ Verify Payment
                           </motion.button>
-                          <button className="btn btn-sm btn-secondary">
-                            ✗ Reject
-                          </button>
+                          <button className="btn btn-sm btn-secondary">✗ Reject</button>
                         </div>
                       </div>
                     ))
@@ -654,11 +599,9 @@ const AdminDashboard = () => {
                       </span>
                     </div>
                     <div className="table-cell">
-                      <button 
+                      <button
                         className="btn btn-sm btn-secondary"
-                        onClick={() => {
-                          toast.info(`Payment Details: ₹${payment.amount} - ${payment.status}`);
-                        }}
+                        onClick={() => toast.info(`Payment Details: ₹${payment.amount} - ${payment.status}`)}
                       >
                         View
                       </button>
@@ -689,9 +632,9 @@ const AdminDashboard = () => {
           >
             <div className="modal-header">
               <h3>Add New Student</h3>
-              <button 
+              <button
                 className="modal-close"
-                onClick={() => setShowAddStudentModal(false)}
+                onClick={() => { setShowAddStudentModal(false); setErrors({}); }}
               >
                 ×
               </button>
@@ -702,49 +645,64 @@ const AdminDashboard = () => {
                 <label className="form-label">Full Name *</label>
                 <input
                   type="text"
-                  className="form-input"
+                  className={`form-input ${errors.name ? 'input-error' : ''}`}
                   value={newStudent.name}
-                  onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
+                  onChange={(e) => {
+                    setNewStudent({...newStudent, name: e.target.value});
+                    setErrors({...errors, name: ''});
+                  }}
                   placeholder="Enter student's full name"
-                  required
                 />
+                {errors.name && <span className="form-error">{errors.name}</span>}
               </div>
 
               <div className="form-group">
                 <label className="form-label">Admission Number *</label>
                 <input
                   type="text"
-                  className="form-input"
+                  className={`form-input ${errors.admissionNumber ? 'input-error' : ''}`}
                   value={newStudent.admissionNumber}
-                  onChange={(e) => setNewStudent({...newStudent, admissionNumber: e.target.value})}
+                  onChange={(e) => {
+                    setNewStudent({...newStudent, admissionNumber: e.target.value});
+                    setErrors({...errors, admissionNumber: ''});
+                  }}
                   placeholder="Enter 4-digit admission number"
-                  pattern="\d{4}"
                   maxLength="4"
-                  required
                 />
-                <small className="form-help">Must be exactly 4 digits</small>
+                {errors.admissionNumber
+                  ? <span className="form-error">{errors.admissionNumber}</span>
+                  : <small className="form-help">Must be exactly 4 digits</small>
+                }
               </div>
 
               <div className="form-group">
                 <label className="form-label">Email</label>
                 <input
-                  type="email"
-                  className="form-input"
+                  type="text"
+                  className={`form-input ${errors.email ? 'input-error' : ''}`}
                   value={newStudent.email}
-                  onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
+                  onChange={(e) => {
+                    setNewStudent({...newStudent, email: e.target.value});
+                    setErrors({...errors, email: ''});
+                  }}
                   placeholder="Enter email address"
                 />
+                {errors.email && <span className="form-error">{errors.email}</span>}
               </div>
 
               <div className="form-group">
                 <label className="form-label">Phone</label>
                 <input
-                  type="tel"
-                  className="form-input"
+                  type="text"
+                  className={`form-input ${errors.phone ? 'input-error' : ''}`}
                   value={newStudent.phone}
-                  onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
-                  placeholder="Enter phone number"
+                  onChange={(e) => {
+                    setNewStudent({...newStudent, phone: e.target.value});
+                    setErrors({...errors, phone: ''});
+                  }}
+                  placeholder="Enter 10-digit mobile number"
                 />
+                {errors.phone && <span className="form-error">{errors.phone}</span>}
               </div>
 
               <div className="form-group">
@@ -759,17 +717,14 @@ const AdminDashboard = () => {
               </div>
 
               <div className="modal-actions">
-                <button 
+                <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setShowAddStudentModal(false)}
+                  onClick={() => { setShowAddStudentModal(false); setErrors({}); }}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit"
-                  className="btn btn-primary"
-                >
+                <button type="submit" className="btn btn-primary">
                   Add Student
                 </button>
               </div>
@@ -806,13 +761,13 @@ const AdminDashboard = () => {
               </div>
 
               <div className="modal-actions">
-                <button 
+                <button
                   className="btn btn-secondary"
                   onClick={() => setShowDeleteModal(false)}
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   className="btn btn-danger"
                   onClick={confirmDeleteStudent}
                 >
