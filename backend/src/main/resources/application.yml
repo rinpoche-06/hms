@@ -30,3 +30,4 @@ app:
     cost: 60.0
     fine-per-day: 30.0
     payment-grace-days: 7
+

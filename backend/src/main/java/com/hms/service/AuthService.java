@@ -8,6 +8,7 @@ import com.hms.entity.Student;
 import com.hms.repository.AdminRepository;
 import com.hms.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +19,12 @@ public class AuthService {
 
     @Autowired
     private StudentRepository studentRepository;
+
+    @Value("${app.admin.username}")
+    private String adminUsername;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
 
     public LoginResponse authenticate(LoginRequest loginRequest) {
         if ("admin".equals(loginRequest.getRole())) {
@@ -31,7 +38,7 @@ public class AuthService {
 
     private LoginResponse authenticateAdmin(LoginRequest loginRequest) {
         // Check if admin credentials match
-        if ("admin".equals(loginRequest.getUsername()) && "1234567890".equals(loginRequest.getPassword())) {
+        if (adminUsername.equals(loginRequest.getUsername()) && adminPassword.equals(loginRequest.getPassword())) {
             UserDto userDto = new UserDto();
             userDto.setId(1L);
             userDto.setUsername("admin");
