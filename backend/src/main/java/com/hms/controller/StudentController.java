@@ -2,6 +2,7 @@ package com.hms.controller;
 
 import com.hms.dto.MealScheduleDto;
 import com.hms.dto.PaymentSummaryDto;
+import com.hms.dto.StudentBillDto;
 import com.hms.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -53,10 +54,21 @@ public class StudentController {
         return ResponseEntity.ok(summary);
     }
 
+    @GetMapping("/{studentId}/bill")
+    public ResponseEntity<StudentBillDto> getCurrentBill(@PathVariable Long studentId) {
+        StudentBillDto bill = studentService.getCurrentBill(studentId);
+        return ResponseEntity.ok(bill);
+    }
+
     @PostMapping("/{studentId}/payment")
     public ResponseEntity<?> makePayment(@PathVariable Long studentId, @RequestBody Map<String, Object> paymentData) {
         try {
-            Double amount = (Double) paymentData.get("amount");
+            Object amountValue = paymentData.get("amount");
+            if (!(amountValue instanceof Number)) {
+                throw new RuntimeException("Payment amount is required");
+            }
+
+            Double amount = ((Number) amountValue).doubleValue();
             String status = (String) paymentData.get("status");
             studentService.makePayment(studentId, amount, status);
             return ResponseEntity.ok("{\"message\": \"Payment processed successfully\"}");

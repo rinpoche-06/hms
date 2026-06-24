@@ -2,27 +2,49 @@ package com.hms.service;
 
 import com.hms.dto.MealScheduleDto;
 import com.hms.dto.PaymentSummaryDto;
+import com.hms.dto.StudentBillDto;
+import com.hms.entity.MonthlyBill;
 import com.hms.entity.Student;
+import com.hms.repository.MonthlyBillRepository;
+import com.hms.repository.StudentMealRepository;
 import com.hms.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class StudentService {
+    private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("MMMM yyyy");
+    private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("MMM d");
 
     @Autowired
     private StudentRepository studentRepository;
+
+    @Autowired
+    private StudentMealRepository studentMealRepository;
+
+    @Autowired
+    private MonthlyBillRepository monthlyBillRepository;
 
     @Autowired
     private MealService mealService;
     
     @Autowired
     private PaymentService paymentService;
+
+    @Value("${app.meal.cost}")
+    private double mealCost;
 
     public List<MealScheduleDto> getMealSchedule(Long studentId) {
         Student student = studentRepository.findById(studentId)
@@ -102,6 +124,51 @@ public class StudentService {
         summary.setPaymentHistory(new ArrayList<>());
         
         return summary;
+    }
+
+    public StudentBillDto getCurrentBill(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        LocalDate today = LocalDate.now(IST_ZONE);
+        LocalDate periodStart = today.withDayOfMonth(1);
+        LocalDate periodEnd = today.withDayOfMonth(today.lengthOfMonth());
+        int month = today.getMonthValue();
+        int year = today.getYear();
+
+        long optedMealCount = studentMealRepository
+                .countByStudentAndIsOptedTrueAndMeal_MealDateBetween(student, periodStart, periodEnd);
+        double mealAmount = BigDecimal.valueOf(mealCost)
+                .multiply(BigDecimal.valueOf(optedMealCount))
+                .doubleValue();
+
+        Optional<MonthlyBill> monthlyBill = monthlyBillRepository
+                .findByStudentAndMonthAndYear(student, month, year);
+        double fine = monthlyBill
+                .map(MonthlyBill::getFineAmount)
+                .orElse(BigDecimal.ZERO)
+                .doubleValue();
+        boolean paid = monthlyBill
+                .map(MonthlyBill::getIsPaid)
+                .orElse(false);
+
+        String status = paid ? "confirmed" : paymentService.getPaymentStatus(studentId);
+
+        StudentBillDto bill = new StudentBillDto();
+        bill.setStudentId(studentId);
+        bill.setMonth(today.format(MONTH_FORMATTER));
+        bill.setTotalMeals((int) optedMealCount);
+        bill.setTotalDays((int) ChronoUnit.DAYS.between(periodStart, periodEnd) + 1);
+        bill.setAmount(mealAmount);
+        bill.setTotalAmount(mealAmount + fine);
+        bill.setFine(fine);
+        bill.setBillingPeriodStart(periodStart);
+        bill.setBillingPeriodEnd(periodEnd);
+        bill.setBillingPeriod(periodStart.format(PERIOD_FORMATTER) + " - " + periodEnd.format(PERIOD_FORMATTER));
+        bill.setDueDate(monthlyBill.map(MonthlyBill::getDueDate).orElse(periodEnd));
+        bill.setStatus(status);
+        bill.setPaid(paid);
+        return bill;
     }
 
     public void makePayment(Long studentId, Double amount, String status) {

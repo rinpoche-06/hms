@@ -4,6 +4,7 @@ import { FiCalendar, FiCreditCard, FiClock, FiCheck, FiX, FiSquare } from 'react
 import QRCode from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import api from '../config/api';
 import './StudentDashboard.css';
 
 const StudentDashboard = () => {
@@ -78,47 +79,7 @@ const StudentDashboard = () => {
       if (!studentId) return;
 
       generateDefaultMeals();
-
-      // Use dynamic calculation based on actual current date
-      const today = getSimulatedDate();
-      const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth();
-      const todayDate = today.getDate();
-      
-      // Calculate days from today to end of month
-      const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-      const endDate = endOfMonth.getDate();
-      const remainingDays = endDate - todayDate + 1; // Including today
-      const totalMeals = remainingDays * 2; // 2 meals per day
-      const totalAmount = totalMeals * 60; // ₹60 per meal
-      
-      // Dynamic month name and dates
-      const currentMonthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      const dueDate = toDateStr(endOfMonth);
-      const billingPeriod = `${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      
-      console.log('💰 BILLING CALCULATION - Current date:', {
-        today: today.toDateString(),
-        todayDate: todayDate,
-        endDate: endDate,
-        remainingDays: remainingDays,
-        totalMeals: totalMeals,
-        totalAmount: totalAmount,
-        currentMonthName: currentMonthName,
-        billingPeriod: billingPeriod,
-        dueDate: dueDate
-      });
-      
-      setCurrentBill({
-        month: currentMonthName,
-        totalMeals: totalMeals,
-        totalDays: remainingDays,
-        amount: totalAmount,
-        fine: 0,
-        dueDate: dueDate,
-        billingPeriod: billingPeriod,
-        status: 'pending'
-      });
+      await loadCurrentBill(studentId);
       
     } catch (error) {
       console.error('Error loading student data:', error);
@@ -127,6 +88,13 @@ const StudentDashboard = () => {
     
     // Check for confirmed payments after everything is loaded
     checkConfirmedPayments();
+  };
+
+  const loadCurrentBill = async (studentId = user?.id) => {
+    if (!studentId) return;
+
+    const response = await api.get(`/student/${studentId}/bill`);
+    setCurrentBill(response.data);
   };
 
   const checkConfirmedPayments = () => {
@@ -159,15 +127,8 @@ const StudentDashboard = () => {
         return prev;
       });
       
-      // Update current bill status to confirmed
-      setCurrentBill(prev => {
-        if (prev && (prev.status === 'pending_verification' || prev.status === 'pending')) {
-          return {
-            ...prev,
-            status: 'confirmed'
-          };
-        }
-        return prev;
+      loadCurrentBill(user.id).catch(error => {
+        console.error('Failed to refresh bill status:', error);
       });
     }
   };
@@ -299,8 +260,8 @@ const StudentDashboard = () => {
         console.log('💾 SAVED meal skip:', { studentId: user.id, date: date, skipped: true });
       }
       
-      // Recalculate payment amount
-      recalculatePayment(updatedMeals);
+      await api.post(`/student/${user.id}/meals/skip-day?date=${encodeURIComponent(date)}`);
+      await loadCurrentBill(user.id);
       
       toast.success('Day skipped successfully!');
       
@@ -341,8 +302,8 @@ const StudentDashboard = () => {
         console.log('💾 SAVED meal enable:', { studentId: user.id, date: date, opted: true });
       }
       
-      // Recalculate payment amount
-      recalculatePayment(updatedMeals);
+      await api.post(`/student/${user.id}/meals/enable-day?date=${encodeURIComponent(date)}`);
+      await loadCurrentBill(user.id);
       
       toast.success('Day enabled successfully!');
       
@@ -352,48 +313,11 @@ const StudentDashboard = () => {
     }
   };
 
-  const recalculatePayment = (updatedMeals) => {
-    // Simply count all opted meals
-    const optedMeals = updatedMeals.filter(meal => meal.isOpted);
-    const totalAmount = optedMeals.length * 60; // ₹60 per meal
-
-    console.log('💰 RECALCULATION - Updated amounts:', {
-      totalMeals: updatedMeals.length,
-      optedMeals: optedMeals.length,
-      skippedMeals: updatedMeals.length - optedMeals.length,
-      totalAmount: totalAmount,
-      studentId: user?.id
-    });
-
-    // Update current bill
-    setCurrentBill(prev => ({
-      ...prev,
-      totalMeals: optedMeals.length,
-      amount: totalAmount
-    }));
-
-    // Save updated amounts to localStorage for AdminDashboard to read
-    if (user?.id) {
-      const studentBills = JSON.parse(localStorage.getItem('studentBills') || '{}');
-      studentBills[user.id] = {
-        amount: totalAmount,
-        totalMeals: optedMeals.length,
-        lastUpdated: toDateStr(getSimulatedDate())
-      };
-      localStorage.setItem('studentBills', JSON.stringify(studentBills));
-      
-      // Trigger admin dashboard refresh by updating a timestamp
-      localStorage.setItem('adminRefreshTrigger', toDateStr(getSimulatedDate()));
-      
-      console.log('💾 SAVED to localStorage:', studentBills[user.id]);
-    }
-  };
-
   const handlePayment = () => {
     setShowPaymentModal(true);
   };
 
-  const confirmPayment = () => {
+  const confirmPayment = async () => {
     // Check if payment already exists for this student
     const existingPayments = JSON.parse(localStorage.getItem('pendingPayments') || '[]');
     const alreadyPaid = existingPayments.some(p => 
@@ -407,12 +331,17 @@ const StudentDashboard = () => {
     }
 
     setShowPaymentModal(false);
-    
-    // Update current bill status
-    setCurrentBill(prev => ({
-      ...prev,
-      status: 'pending_verification'
-    }));
+
+    try {
+      await api.post(`/student/${user.id}/payment`, {
+        amount: currentBill.amount,
+        status: 'pending_verification'
+      });
+      await loadCurrentBill(user.id);
+    } catch (error) {
+      toast.error('Failed to submit payment for verification');
+      return;
+    }
     
     // Add to payment history
     const paymentId = Date.now();
@@ -482,7 +411,7 @@ const StudentDashboard = () => {
             </div>
             <div className="header-stats">
               <div className="stat-item">
-                <span className="stat-value">{meals.filter(m => m.isOpted).length}</span>
+                <span className="stat-value">{currentBill?.totalMeals ?? meals.filter(m => m.isOpted).length}</span>
                 <span className="stat-label">Meals This Month</span>
               </div>
               <div className="stat-divider"></div>
@@ -873,3 +802,5 @@ const StudentDashboard = () => {
 };
 
 export default StudentDashboard;
+
+
