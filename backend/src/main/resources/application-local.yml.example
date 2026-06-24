@@ -6,7 +6,7 @@ spring:
     name: hostel-mess-management
 
   datasource:
-    url: jdbc:postgresql://aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+    url: jdbc:postgresql://<pooler-host>:6543/postgres?sslmode=require
     username: postgres.<your-project-ref>
     password: <your-database-password>
     driver-class-name: org.postgresql.Driver
@@ -47,6 +47,10 @@ app:
     cost: 60.0
     fine-per-day: 30.0
     payment-grace-days: 7
+  admin:
+    username: admin
+    # Change this to a strong password before deploying
+    password: your-secure-password-here
   upi:
     id: <your-upi-id>
 

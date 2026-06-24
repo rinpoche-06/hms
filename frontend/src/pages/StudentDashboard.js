@@ -490,6 +490,11 @@ const StudentDashboard = () => {
                 <span className="stat-value">₹{currentBill?.amount || 0}</span>
                 <span className="stat-label">Amount to Pay</span>
               </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <span className="stat-value">{user?.roomNumber || '—'}</span>
+                <span className="stat-label">Room Number</span>
+              </div>
             </div>
           </div>
         </motion.div>

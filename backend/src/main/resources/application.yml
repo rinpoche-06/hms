@@ -25,8 +25,13 @@ spring:
       write-dates-as-timestamps: false
 
 # Application Configuration
+# Application Configuration
 app:
   meal:
     cost: 60.0
     fine-per-day: 30.0
     payment-grace-days: 7
+  jwt:
+    secret: hms-super-secret-jwt-key-change-this-in-production-min-32-chars
+    expiration-ms: 86400000
+

@@ -8,7 +8,15 @@ import com.hms.entity.Student;
 import com.hms.repository.AdminRepository;
 import com.hms.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+
+import java.security.Key;
+import java.util.Date;
 
 @Service
 public class AuthService {
@@ -18,6 +26,28 @@ public class AuthService {
 
     @Autowired
     private StudentRepository studentRepository;
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${app.jwt.expiration-ms}")
+    private long jwtExpirationMs;
+
+    private String generateToken(Long userId, String role) {
+        Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        return Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    @Value("${app.admin.username}")
+    private String adminUsername;
+
+    @Value("${app.admin.password}")
+    private String adminPassword;
 
     public LoginResponse authenticate(LoginRequest loginRequest) {
         if ("admin".equals(loginRequest.getRole())) {
@@ -31,7 +61,7 @@ public class AuthService {
 
     private LoginResponse authenticateAdmin(LoginRequest loginRequest) {
         // Check if admin credentials match
-        if ("admin".equals(loginRequest.getUsername()) && "1234567890".equals(loginRequest.getPassword())) {
+        if (adminUsername.equals(loginRequest.getUsername()) && adminPassword.equals(loginRequest.getPassword())) {
             UserDto userDto = new UserDto();
             userDto.setId(1L);
             userDto.setUsername("admin");
@@ -41,7 +71,7 @@ public class AuthService {
             return LoginResponse.builder()
                 .success(true)
                 .message("Login successful")
-                .token("admin-token-" + System.currentTimeMillis())
+                .token(generateToken(1L, "admin"))
                 .user(userDto)
                 .build();
         } else {
@@ -74,7 +104,7 @@ public class AuthService {
             return LoginResponse.builder()
                 .success(true)
                 .message("Login successful")
-                .token("student-token-" + System.currentTimeMillis())
+                .token(generateToken(student.getId(), "student"))
                 .user(userDto)
                 .build();
         } else {
