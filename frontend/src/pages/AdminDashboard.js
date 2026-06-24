@@ -34,6 +34,8 @@ const AdminDashboard = () => {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [paymentToReject, setPaymentToReject] = useState(null);
 
 // load activity once on mount - not on every poll
 
@@ -306,6 +308,41 @@ useEffect(()=>{
       toast.success(`Payment verified for ${payment.studentName}!`);
     }
   };
+
+  const handleRejectPayment = (paymentId) => {
+  const payment = pendingPayments.find(p => p.id === paymentId);
+  if (payment) {
+    setPaymentToReject(payment);
+    setShowRejectModal(true);
+  }
+};
+
+const confirmRejectPayment = async () => {
+  if (!paymentToReject) return;
+
+  try {
+    const response = await fetch(`/api/admin/payments/${paymentToReject.id}/reject`, {
+      method: 'POST'
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      toast.error(err.error || 'Failed to reject payment');
+      return;
+    }
+
+    const updatedPendingPayments = pendingPayments.filter(p => p.id !== paymentToReject.id);
+    setPendingPayments(updatedPendingPayments);
+    updateDashboardStats(students, updatedPendingPayments);
+    addActivity('payment', `Payment rejected for ${paymentToReject.studentName}`, paymentToReject.studentName);
+
+    setShowRejectModal(false);
+    setPaymentToReject(null);
+    toast.success(`Payment rejected for ${paymentToReject.studentName}`);
+  } catch (error) {
+    toast.error('Failed to reject payment');
+  }
+};
 
   const handleDeleteStudent = (studentId, studentName) => {
     setStudentToDelete({ id: studentId, name: studentName });
@@ -797,6 +834,52 @@ useEffect(()=>{
                   onClick={confirmDeleteStudent}
                 >
                   Delete Student
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Reject Payment Confirmation Modal */}
+      {showRejectModal && (
+        <motion.div
+          className="modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setShowRejectModal(false)}
+        >
+          <motion.div
+            className="delete-modal"
+            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>Reject Payment</h3>
+            </div>
+
+            <div className="modal-content">
+              <div className="delete-warning">
+                <div className="warning-icon">⚠️</div>
+                <p>Are you sure you want to reject the payment of <strong>₹{paymentToReject?.amount}</strong> from <strong>"{paymentToReject?.studentName}"</strong>?</p>
+                <p className="warning-text">This action cannot be undone.</p>
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowRejectModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={confirmRejectPayment}
+                >
+                  Reject Payment
                 </button>
               </div>
             </div>

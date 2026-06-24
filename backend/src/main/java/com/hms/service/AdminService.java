@@ -134,6 +134,13 @@ public class AdminService {
         }
     }
 
+    public void rejectPayment(Long paymentId) {
+    boolean success = paymentService.rejectPayment(paymentId);
+    if (!success) {
+        throw new RuntimeException("Payment not found or already processed");
+    }
+}
+
     public void deleteStudent(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));

@@ -69,4 +69,13 @@ public class AdminController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+    @PostMapping("/payments/{paymentId}/reject")
+public ResponseEntity<?> rejectPayment(@PathVariable Long paymentId) {
+    try {
+        adminService.rejectPayment(paymentId);
+        return ResponseEntity.ok(Map.of("message", "Payment rejected successfully"));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+}
 }

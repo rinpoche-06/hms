@@ -59,6 +59,18 @@ public class PaymentService {
         }
         return false;
     }
+
+    public boolean rejectPayment(Long paymentId) {
+    Map<String, Object> payment = payments.get(paymentId);
+    if (payment != null && "pending_verification".equals(payment.get("status"))) {
+        payment.put("status", "rejected");
+        payment.put("verifiedDate", LocalDateTime.now());
+        
+        System.out.println("Payment rejected: ID=" + paymentId + ", Student=" + payment.get("studentName"));
+        return true;
+    }
+    return false;
+}
     
     public String getPaymentStatus(Long studentId) {
         
