@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiUsers, FiCalendar, FiCreditCard, FiTrendingUp, FiPlus } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import api from '../config/api';
 import './AdminDashboard.css';
 
 /**compute elapsed time from ISO timestamp at render time, "Just Now","5 min ago","2 hours ago","Yesterday", "N days ago"
@@ -59,14 +60,10 @@ useEffect(()=>{
 
   const loadDashboardData = async () => {
     try {
-      const studentsResponse = await fetch('/api/admin/students');
-      if (studentsResponse.ok) {
-        const studentsData = await studentsResponse.json();
-        setStudents(studentsData);
-        updateDashboardStats(studentsData, pendingPayments);
-      } else {
-        toast.error('Failed to load students');
-      }
+      const studentsResponse = await api.get('/admin/students');
+      const studentsData = studentsResponse.data;
+      setStudents(studentsData);
+      updateDashboardStats(studentsData, pendingPayments);
 
       generateTodayMeals();
       //loadRecentActivity removed from here
@@ -153,31 +150,14 @@ useEffect(()=>{
     }
 
     try {
-      const response = await fetch('/api/admin/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newStudent.name,
-          admissionNumber: newStudent.admissionNumber,
-          email: newStudent.email || '',
-          phone: newStudent.phone || '',
-          roomNumber: newStudent.roomNumber || ''
-        })
+      const response = await api.post('/admin/students', {
+        name: newStudent.name,
+        admissionNumber: newStudent.admissionNumber,
+        email: newStudent.email || '',
+        phone: newStudent.phone || '',
+        roomNumber: newStudent.roomNumber || ''
       });
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to add student';
-        try {
-          const err = await response.json();
-          errorMessage = err.error || err.message || errorMessage;
-        } catch {
-          errorMessage = `Server error (${response.status})`;
-        }
-        toast.error(errorMessage);
-        return;
-      }
-
-      const savedStudent = await response.json();
+      const savedStudent = response.data;
       const updatedStudents = [...students, savedStudent];
       setStudents(updatedStudents);
       updateDashboardStats(updatedStudents, pendingPayments);
@@ -189,7 +169,8 @@ useEffect(()=>{
       setNewStudent({ name: '', admissionNumber: '', email: '', phone: '', roomNumber: '' });
       toast.success(`Student ${savedStudent.name} added successfully!`);
     } catch (error) {
-      toast.error('Failed to add student');
+      const message = error.response?.data?.error || error.response?.data?.message || 'Failed to add student';
+      toast.error(message);
     }
   };
 
@@ -353,15 +334,7 @@ const confirmRejectPayment = async () => {
     if (!studentToDelete) return;
 
     try {
-      const response = await fetch(`/api/admin/students/${studentToDelete.id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        toast.error(err.error || 'Failed to delete student');
-        return;
-      }
+      await api.delete(`/admin/students/${studentToDelete.id}`);
 
       const updatedStudents = students.filter(s => s.id !== studentToDelete.id);
       setStudents(updatedStudents);
@@ -373,7 +346,8 @@ const confirmRejectPayment = async () => {
       setStudentToDelete(null);
       toast.success(`Student "${studentToDelete.name}" deleted successfully!`);
     } catch (error) {
-      toast.error('Failed to delete student');
+      const message = error.response?.data?.error || error.response?.data?.message || 'Failed to delete student';
+      toast.error(message);
     }
   };
 
