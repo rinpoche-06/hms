@@ -43,6 +43,10 @@ public class StudentService {
     @Autowired
     private PaymentService paymentService;
 
+    public List<Map<String, Object>> getPaymentHistory(Long studentId) {
+    return paymentService.getPaymentHistory(studentId);
+    }
+
     @Value("${app.meal.cost}")
     private double mealCost;
 
