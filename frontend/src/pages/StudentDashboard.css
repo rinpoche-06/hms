@@ -691,8 +691,9 @@
     flex-direction: column;
     width: 100%;
   }
-}/
-* Payment Status Styles */
+}
+
+/* Payment Status Styles */
 .payment-status .status.pending_verification {
   background: rgba(245, 158, 11, 0.1);
   color: #d97706;
@@ -718,8 +719,9 @@
 .no-pending-payments p {
   font-size: 1rem;
   margin: 0;
-}/* Different
- Alert Types */
+}
+
+/* Different Alert Types */
 .verification-alert {
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   border: 1px solid #f59e0b;
