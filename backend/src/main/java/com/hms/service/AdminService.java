@@ -49,7 +49,7 @@ public class AdminService {
 
         Student savedStudent = studentRepository.save(student);
 
-        // Initialize default meals starting from tomorrow
+        // Initialize default meals for the current month
         mealService.initializeDefaultMealsForStudent(savedStudent.getId());
 
         return convertToDto(savedStudent);
