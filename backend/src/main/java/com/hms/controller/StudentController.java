@@ -76,4 +76,14 @@ public class StudentController {
             return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
         }
     }
+
+    @GetMapping("/{studentId}/payments")
+    public ResponseEntity<?> getPaymentHistory(@PathVariable Long studentId) {
+        try {
+            List<Map<String, Object>> history = studentService.getPaymentHistory(studentId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }
