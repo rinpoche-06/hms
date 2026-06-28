@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface StudentMealRepository extends JpaRepository<StudentMeal, Long> {
     Optional<StudentMeal> findByStudentAndMeal(Student student, Meal meal);
     List<StudentMeal> findByStudent(Student student);
+    List<StudentMeal> findByStudentAndMeal_MealDate(Student student, LocalDate mealDate);
 
     long countByStudentAndIsOptedTrueAndMeal_MealDateBetween(
             Student student, LocalDate startDate, LocalDate endDate);

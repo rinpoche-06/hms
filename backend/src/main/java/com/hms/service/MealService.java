@@ -8,15 +8,16 @@ import com.hms.repository.StudentMealRepository;
 import com.hms.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class MealService {
 
-    // Repositories backing real Meal / StudentMeal persistence
-    // Replaces the old in-memory HashMap storage
     @Autowired
     private MealRepository mealRepository;
 
@@ -26,19 +27,20 @@ public class MealService {
     @Autowired
     private StudentRepository studentRepository;
 
+    @Transactional
     public void initializeDefaultMealsForStudent(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        LocalDate today = LocalDate.now();
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
 
-        // Initialize default meals for next 30 days
-        for (int i = 0; i < 30; i++) {
-            LocalDate date = tomorrow.plusDays(i);
-
-            // By default, both breakfast and dinner are enabled
-            setMealStatus(student, date, Meal.MealType.breakfast, true);
-            setMealStatus(student, date, Meal.MealType.dinner, true);
+        for (LocalDate date = startOfMonth; !date.isAfter(endOfMonth); date = date.plusDays(1)) {
+            for (Meal.MealType mealType : Meal.MealType.values()) {
+                Meal meal = findOrCreateMeal(mealType, date);
+                ensureStudentMealExists(student, meal);
+            }
         }
     }
 
@@ -51,33 +53,33 @@ public class MealService {
         return new boolean[]{breakfast, dinner};
     }
 
+    @Transactional
     public void skipDay(Long studentId, LocalDate date) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        setMealStatus(student, date, Meal.MealType.breakfast, false);
-        setMealStatus(student, date, Meal.MealType.dinner, false);
+        setMealStatusForDate(student, date, false);
     }
 
+    @Transactional
     public void enableDay(Long studentId, LocalDate date) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        setMealStatus(student, date, Meal.MealType.breakfast, true);
-        setMealStatus(student, date, Meal.MealType.dinner, true);
+        setMealStatusForDate(student, date, true);
     }
 
+    @Transactional
     public void resetMealsToDefault(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
-        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        LocalDate today = LocalDate.now();
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
 
-        // Reset meals for next 30 days to default (enabled)
-        for (int i = 0; i < 30; i++) {
-            LocalDate date = tomorrow.plusDays(i);
-            setMealStatus(student, date, Meal.MealType.breakfast, true);
-            setMealStatus(student, date, Meal.MealType.dinner, true);
+        for (LocalDate date = startOfMonth; !date.isAfter(endOfMonth); date = date.plusDays(1)) {
+            setMealStatusForDate(student, date, true);
         }
     }
 
@@ -88,8 +90,6 @@ public class MealService {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth());
 
-        // Single count query against student_meals joined to meals,
-        // replaces the old day-by-day HashMap loop
         long optedCount = studentMealRepository
                 .countByStudentAndIsOptedTrueAndMeal_MealDateBetween(student, startOfMonth, endOfMonth);
 
@@ -103,17 +103,28 @@ public class MealService {
         return (int) studentMealRepository.countByIsOptedTrueAndMeal_MealDate(today);
     }
 
-    private void setMealStatus(Student student, LocalDate date, Meal.MealType mealType, boolean enabled) {
-        // Find or create the Meal row for this type/date
-        Meal meal = mealRepository.findByMealTypeAndMealDate(mealType, date)
+    private void setMealStatusForDate(Student student, LocalDate date, boolean enabled) {
+        for (Meal.MealType mealType : Meal.MealType.values()) {
+            Meal meal = findOrCreateMeal(mealType, date);
+            ensureStudentMealExists(student, meal);
+        }
+
+        List<StudentMeal> studentMeals = studentMealRepository.findByStudentAndMeal_MealDate(student, date);
+        for (StudentMeal studentMeal : studentMeals) {
+            studentMeal.setIsOpted(enabled);
+            studentMeal.setSkippedDate(enabled ? null : LocalDateTime.now());
+            studentMealRepository.save(studentMeal);
+        }
+    }
+
+    private Meal findOrCreateMeal(Meal.MealType mealType, LocalDate date) {
+        return mealRepository.findByMealTypeAndMealDate(mealType, date)
                 .orElseGet(() -> mealRepository.save(new Meal(mealType, date)));
+    }
 
-        // Find or create the StudentMeal row linking this student to that meal
-        StudentMeal studentMeal = studentMealRepository.findByStudentAndMeal(student, meal)
-                .orElseGet(() -> new StudentMeal(student, meal));
-
-        studentMeal.setIsOpted(enabled);
-        studentMealRepository.save(studentMeal);
+    private StudentMeal ensureStudentMealExists(Student student, Meal meal) {
+        return studentMealRepository.findByStudentAndMeal(student, meal)
+                .orElseGet(() -> studentMealRepository.save(new StudentMeal(student, meal)));
     }
 
     private boolean getMealStatus(Student student, LocalDate date, Meal.MealType mealType) {
